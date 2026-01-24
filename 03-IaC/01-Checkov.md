@@ -42,21 +42,24 @@ Create `main.tf` (INSECURE ON PURPOSE):
 
 ```bash
 cat <<EOF > main.tf
+
 resource "aws_s3_bucket" "public_bucket" {
   bucket = "my-public-demo-bucket"
+}
+
+resource "aws_s3_bucket_acl" "public_acl" {
+  bucket = aws_s3_bucket.public_bucket.id
   acl    = "public-read"
 }
 
-resource "aws_security_group" "open_ssh" {
-  name = "open-ssh"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket                  = aws_s3_bucket.public_bucket.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 }
+
 EOF
 ```
 
@@ -86,26 +89,16 @@ Checkov did.
 cat <<EOF > main.tf
 resource "aws_s3_bucket" "secure_bucket" {
   bucket = "my-secure-demo-bucket"
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
 }
 
-resource "aws_security_group" "restricted_ssh" {
-  name = "restricted-ssh"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["10.0.0.0/16"]
-  }
+resource "aws_s3_bucket_public_access_block" "secure_access" {
+  bucket                  = aws_s3_bucket.secure_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
+
 EOF
 ```
 
